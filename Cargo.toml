@@ -1,0 +1,26 @@
+[package]
+name = "banknote"
+version = "0.1.0"
+authors = ["Nikolay Kochulin <basiqueevangelist@yandex.ru>"]
+description = "[WIP] An all-in-one read-through cache for package repositories"
+repository = "https://github.com/BasiqueEvangelist/Banknote"
+license = "AGPL-3.0-only"
+edition = "2024"
+
+[dependencies]
+anyhow = "1.0.102"
+axum = "0.8.9"
+axum-extra = { version = "0.12.6", features = ["async-read-body"] }
+dotenvy = "0.15.7"
+futures-util = "0.3.32"
+moka = { version = "0.12.15", features = ["future"] }
+problemdetails = { version = "0.7.0", features = ["axum"] }
+reqwest = { version = "0.13.3", features = ["json", "stream"] }
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.149"
+tokio = { version = "1.52.3", features = ["full"] }
+tokio-util = { version = "0.7.18", features = ["codec"] }
+tower-http = { version = "0.6.11", features = ["trace"] }
+tracing = "0.1.44"
+tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
+url = "2.5.8"
