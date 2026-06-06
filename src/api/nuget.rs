@@ -78,12 +78,9 @@ pub async fn registration_index(
     state: ServerState,
     Path(id): Path<String>,
 ) -> Result<String, ApiError> {
-    Ok(reqwest::get(format!(
-        "{}{}/index.json",
-        state.nuget.unwrap().remote_registrations_base_address,
-        id
-    ))
-    .await?
-    .text()
-    .await?)
+    if let Some(index) = state.nuget.unwrap().registration_index(&id).await {
+        Ok(index)
+    } else {
+        Err(ApiError::NotFound)
+    }
 }

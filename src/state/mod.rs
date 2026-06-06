@@ -1,8 +1,9 @@
-use std::{convert::Infallible, env, net::SocketAddr, sync::Arc};
+use std::{convert::Infallible, net::SocketAddr, sync::Arc};
 
 use anyhow::Context;
 use axum::{extract::FromRequestParts, http::request::Parts};
 
+pub mod config;
 pub mod nuget;
 
 #[derive(Clone)]
@@ -10,7 +11,7 @@ pub struct ServerState {
     pub bind_addr: SocketAddr,
     pub base_url: &'static str,
 
-    pub nuget: Option<Arc<nuget::NugetState>>
+    pub nuget: Option<Arc<nuget::NugetState>>,
 }
 
 impl FromRequestParts<ServerState> for ServerState {
@@ -26,26 +27,29 @@ impl FromRequestParts<ServerState> for ServerState {
 
 #[tracing::instrument]
 pub async fn init() -> anyhow::Result<ServerState> {
-    let bind_addr = env::var("BIND_ADDR")
-        .with_context(|| "reading BIND_ADDR variable")?
-        .parse::<SocketAddr>()
-        .with_context(|| "parsing BIND_ADDR variable")?;
+    let config: config::BanknoteConfig = knus::parse(
+        "config.kdl",
+        &std::fs::read_to_string("./config.kdl").with_context(|| "reading config file")?,
+    )?;
 
-    let base_url = env::var("BASE_URL")
-        .with_context(|| "reading BASE_URL variable")?
-        .leak();
+    let cache_path: &'static str = config.cache.path.leak();
 
-    let data_path = env::var("DATA_PATH")
-        .with_context(|| "reading DATA_PATH variable")?
-        .leak();
+    std::fs::create_dir_all(cache_path)
+        .with_context(|| format!("creating cache directory {}", cache_path))?;
 
-    let nuget = nuget::maybe_init(data_path).await
-        .with_context(|| "initializing NuGet backend")?
-        .map(Arc::new);
+    let mut nuget: Option<Arc<nuget::NugetState>> = None;
+
+    if let Some(nuget_config) = &config.repositories.nuget {
+        nuget = Some(Arc::new(
+            nuget::init(cache_path, nuget_config)
+                .await
+                .with_context(|| "initializing NuGet mirror")?,
+        ));
+    }
 
     Ok(ServerState {
-        bind_addr,
-        base_url,
-        nuget
+        bind_addr: config.bind_addr.parse()?,
+        base_url: config.base_url.leak(),
+        nuget,
     })
 }
